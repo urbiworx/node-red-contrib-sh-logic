@@ -1,0 +1,17 @@
+{
+    "name"         : "node-red-contrib-sh-logic",
+    "version"      : "0.0.1",
+    "description"  : "Logic Nodes for smarthome requirements",
+    "dependencies": {
+    },
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/urbiworx/node-red-contrib-sh-logic.git"
+	},
+    "keywords": [ "node-red", "smarthome", "logic" ],
+    "node-red"     : {
+        "nodes": {
+            "rsh": "sh-logic.js"
+        }
+    }
+}

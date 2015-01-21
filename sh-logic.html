@@ -1,0 +1,201 @@
+<!--
+  Copyright 2015 Urbiworx
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+
+<script type="text/x-red" data-template-name="SHL Formula">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-lightbulb-o"></i> Name</label>
+		<input type="text" id="node-input-name" style="width: 250px;">
+        </input>
+    </div>
+    <div class="form-row">
+        <label for="node-input-formula"><i class="fa fa-lightbulb-o"></i> Formula</label>
+		<input type="text" id="node-input-formula" style="width: 250px;">
+        </input>
+    </div>
+</script>
+
+<script type="text/x-red" data-template-name="SHL Variable">
+    <div class="form-row">
+        <label for="node-input-variable"><i class="fa fa-tag"></i> Variable</label>
+		<input type="text" id="node-input-variable" style="width: 250px;">
+        </input>
+    </div>
+    <div class="form-row">
+        <label for="node-input-initial"><i class="fa fa-tag"></i> Initial Value</label>
+		<input type="text" id="node-input-initial" style="width: 250px;">
+        </input>
+    </div>
+    <div class="form-row">
+        <label for="node-input-reset"><i class="fa fa-tag"></i> Reset after (ms)</label>
+		<input type="text" id="node-input-reset" style="width: 250px;">
+        </input>
+    </div>
+    <div class="form-row">
+        <label for="node-input-delay"><i class="fa fa-tag"></i> Delay for (ms)</label>
+		<input type="text" id="node-input-delay" style="width: 250px;">
+        </input>
+    </div>
+</script>
+<script type="text/x-red" data-template-name="SHL Calendar">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+		<input type="text" id="node-input-name" style="width: 250px;">
+        </input>
+    </div>
+	<div class="form-row">
+		<div style="overflow:auto;max-height:400px">
+			<div id="attribs"/>
+		</div>
+		<a id="add" class="btn btn-mini"><i class="icon-plus"></i>add</a>
+
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="SHL Formula">
+    <p>Enter a formular that can be resolved based on the variables you have defined with 'SHL Variable'.<br/>
+	For example something like: 'athome&&afternoon', given that you did define the two variables athome and afternoon.<br/>
+	The formula will fire as soon as the result of the expression changes.</p>
+</script>
+
+<script type="text/x-red" data-help-name="SHL Variable">
+    <p>Define a variable that can be used with 'SHL Calendar' and 'SHL Formula'<br/>
+	'Initial' describes the inital value that is fired<br/>
+	'Delay' defines a delay that will be used when new values are set<br/>
+	'Reset' defines a timeperiod until when the value is set back to the 'Initial' value</p>
+</script>
+
+<script type="text/x-red" data-help-name="SHL Calendar">
+    <p>Define a complex schedule that can use variables that are defined with 'SHL Variable' in the fields 'from','to','formula','active'.<br/>
+	'from' and 'to' can hold a time like 14:00 as well as a variable like 'sunrise' given that you defined a variable 'sunrise' with 'SHL Variable'.<br/>
+	The rules are carried out one by one, as soon as one matches (and is active), no further rules are evaluated.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('SHL Formula', {
+        category: 'advanced',
+        color: "rgb(218, 196, 180)",
+        defaults: {
+			formula: {value: ""}
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: "feed.png",
+        label: function() {
+			return this.name||this.formula||"SHL Formula";
+        }
+    });
+    RED.nodes.registerType('SHL Variable', {
+        category: 'advanced',
+        color: "rgb(218, 196, 180)",
+        defaults: {
+			variable: {value: ""},
+			initial: {},
+			reset: {},
+			delay:{}
+        },
+        inputs: 1,
+        outputs: 0,
+        icon: "feed.png",
+        label: function() {
+			return this.variable||"SHL Variable";
+        }
+    });
+	
+	RED.nodes.registerType('SHL Calendar', {
+        category: 'advanced',
+        color: "rgb(218, 196, 180)",
+        defaults: {
+			attribs: {attribs: ""},
+			name: {required:true}
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: "feed.png",
+        label: function() {
+			return this.name||"SHL Calendar";
+        },
+		oneditprepare:function(){
+			var node=this;
+			if (typeof(node.attribs)!="undefined"&&(node.attribs.length)!="undefined"&&node.attribs.length>0){
+				for (var i=0;i<node.attribs.length;i++){
+					addRule(node.attribs[i].from,node.attribs[i].to,node.attribs[i].formula,node.attribs[i].active,node.attribs[i].days);
+				}
+			}
+			function addRule(from, to, formula, active, days){
+				var alldays=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+				var container=$("<div>",{class:"attrib",style:"margin-bottom: 40px;"});
+				$("#attribs").append(container);
+				
+								
+				var completeSelectField = $("<div style='float:left'><div style='padding-left:5px'>Days:</div><select class='days' style='width:120px; margin-left: 5px; text-align: center;' multiple/></div>");
+				container.append(completeSelectField);
+				var selectField=completeSelectField.find(".days");
+				for (var d in alldays) {
+					selectField.append($("<option></option>").val(alldays[d]).text(alldays[d]));
+				}
+				if (typeof(days)!="undefined"){
+					selectField.val(days);
+				}
+				
+				var completeInputfieldfrom= $("<div style='float:left'><div style='padding-left:5px'>From:</div><input class='node-input-rule-value from' type='text' style='width:60px; margin-left: 5px; text-align: center;'/></div>"); 
+				container.append(completeInputfieldfrom);
+				var inputfieldfrom=completeInputfieldfrom.find(".from");
+				if (typeof(from)!="undefined"){
+					inputfieldfrom.val(from);
+				}
+				
+				var completeInputfieldto= $("<div style='float:left'><div style='padding-left:5px'>To:</div><input class='node-input-rule-value to' type='text' style='width:60px; margin-left: 5px; text-align: center;'/></div>"); 
+				container.append(completeInputfieldto);
+				var inputfieldto=completeInputfieldto.find(".to");
+				if (typeof(from)!="undefined"){
+					inputfieldto.val(to);
+				}
+				
+				var completeInputfieldformula= $("<div style='float:left'><div style='padding-left:5px'>Formula:</div><input class='node-input-rule-value formula' type='text' style='width:145px; margin-left: 5px; text-align: center;'/></div>"); 
+				container.append(completeInputfieldformula);
+				var inputfieldformula=completeInputfieldformula.find(".formula");
+				if (typeof(from)!="undefined"){
+					inputfieldformula.val(formula);
+				}
+				
+				if (typeof(active)=="undefined"){
+					active="true";
+				}
+				var inputfieldactive=$("<div style='float:left'><div style='padding-left:5px'>Active:</div><input class='node-input-rule-value active' type='text' style='margin-left: 5px; width: 145px;'/></div>");
+				container.append(inputfieldactive);
+				container.find("input.node-input-rule-value.active").val(active);
+
+				var remover=$("<div style='float:right;padding-top:20px'><a class='btn btn-mini'><i class='icon-minus'></i>remove</a></div>").click(function(){
+						container.remove();
+				});
+				container.append(remover);
+				container.append($("<div style='clear:both'/>"));
+			}
+			$("#add").click(function(){
+				addRule();
+			});
+		},
+		oneditsave: function() {
+			var node=this;
+			node.attribs=[];
+			$(".attrib").each(function(index){
+				node.attribs[node.attribs.length]={from:$(this).find(".from").val(),to:$(this).find(".to").val(),formula:$(this).find(".formula").val(),active:$(this).find(".active").val(),days:$(this).find(".days").val()};
+			});
+		}
+	});
+
+</script>
