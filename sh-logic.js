@@ -46,52 +46,22 @@ module.exports = function(RED) {
 		});
     }
     RED.nodes.registerType("SHL Formula",ShlFormula);
-	
+
 	function ShlVariable(n) {
         RED.nodes.createNode(this,n);
 		var that=this;
 		this.variable=n.variable;
-		this.initial=n.initial;
-		if (this.initial!=null){
-			var scope={};
-			vm.runInNewContext("var _result="+this.initial,scope);
-			this.initial=scope._result;
-		}
-		this.reset=(typeof(n.reset)=="undefined"||n.reset=="")?null:parseInt(n.reset,10);
-		this.delay=(typeof(n.delay)=="undefined"||n.delay=="")?null:parseInt(n.delay,10);
-		var timer=null;
-		function work(value){
-			variables[that.variable]=value;
-			if (timer!=null){
-				clearTimeout(timer);
+		this.on("input",function(msg) {
+			variables[that.variable]=msg.payload;
+			if (updater!=null){
+				clearTimeout(updater);
 			}
-			var updateFunction=function(callback){
-				timer=null;
+			updater=setTimeout(function(){
+				updater=null;
 				for (var i=0;i<formulas.length;i++){
 					formulas[i].calculate();
 				}
-				if (typeof(callback)!=="undefined"){
-					callback();
-				}
-			};
-			timer=setTimeout(updateFunction(function(){
-			if (that.reset!=null){
-				timer=setTimeout(function(){
-					variables[that.variable]=that.initial;
-					updateFunction();
-				},that.reset<100?0:that.reset);
-			}
-			}),100);
-		}
-		if (this.initial!=null){
-			work(this.initial);
-		}
-		this.on("input",function(msg) {
-			if (that.delay!=null){
-				setTimeout(function(){work(msg.payload)},that.delay);
-			} else {
-				work(msg.payload);
-			}
+			},100);
 		});
     }
     RED.nodes.registerType("SHL Variable",ShlVariable);
