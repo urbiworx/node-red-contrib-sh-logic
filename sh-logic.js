@@ -25,10 +25,11 @@ module.exports = function(RED) {
 		var that=this;
 		this.state=null;
 		this.formula=n.formula;
+		this.name=n.name;
 		this.calculate=function(){
 			try{
 				vm.runInNewContext("_result="+that.formula,variables);
-				if (that.state!=variables._result){
+				if (JSON.stringify(that.state)!=JSON.stringify(variables._result)){
 					that.state=variables._result;
 					that.send({payload:that.state});
 				}
